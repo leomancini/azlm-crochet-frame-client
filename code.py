@@ -1,100 +1,82 @@
 # SPDX-FileCopyrightText: 2023 Adafruit Industries
 # SPDX-License-Identifier: MIT
 
-from os import getenv
 import time
 import board
-import busio
-from digitalio import DigitalInOut
-import terminalio
-import adafruit_connection_manager
-import adafruit_requests
-from adafruit_esp32spi import adafruit_esp32spi
+import random
 from adafruit_matrixportal.matrix import Matrix
-from adafruit_display_text import label
+import displayio
+import gc
 
-ssid = getenv("CIRCUITPY_WIFI_SSID")
-password = getenv("CIRCUITPY_WIFI_PASSWORD")
+MATRIX_WIDTH = 64
+MATRIX_HEIGHT = 64
 
-# Need to use HTTP, not HTTPS
-JSON_URL = "http://azlm-crochet-frame-server.noshado.ws/"
-
-matrix = Matrix(width=64, height=64)
+matrix = Matrix(width=MATRIX_WIDTH, height=MATRIX_HEIGHT)
 display = matrix.display
 
-text_area = label.Label(
-    terminalio.FONT,
-    text="STARTING",
-    color=0xFFFFFF
-)
+# Create a root group for all display elements
+root_group = displayio.Group()
+display.root_group = root_group
 
-text_area.x = 2
-text_area.y = 6
-display.root_group = text_area
-display.refresh()
+# Create a group for sparkle effect
+sparkles_group = displayio.Group()
+root_group.append(sparkles_group)
 
-esp32_cs = DigitalInOut(board.ESP_CS)
-esp32_ready = DigitalInOut(board.ESP_BUSY)
-esp32_reset = DigitalInOut(board.ESP_RESET)
+# Create a bitmap for a small sparkle (1x1 pixel)
+sparkle_bitmap = displayio.Bitmap(1, 1, 2)
+sparkle_bitmap[0, 0] = 1  # Set the pixel to "on"
 
-spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+# Rainbow colors
+RAINBOW_COLORS = [
+    0xFF0000,  # Red
+    0xFF8000,  # Orange
+    0xFFFF00,  # Yellow
+    0x00FF00,  # Green
+    0x00FFFF,  # Cyan
+    0x0000FF,  # Blue
+    0x8000FF,  # Purple
+    0xFF00FF,  # Magenta
+    0xFFFFFF,  # White
+    0xFFC0C0,  # Light Pink
+    0xC0FFC0,  # Light Green
+    0xC0C0FF,  # Light Blue
+]
 
-pool = adafruit_connection_manager.get_radio_socketpool(esp)
-ssl_context = adafruit_connection_manager.get_radio_ssl_context(esp)
-requests = adafruit_requests.Session(pool, ssl_context)
+print("Starting rainbow sparkles...")
 
-wifi_test_result = "No data"
-json_data = {}
-
-text_area.text = "CONNECTING"
-display.refresh()
-
-try:
-    while not esp.is_connected:
-        try:
-            esp.connect_AP(ssid, password)
-        except OSError as e:
-            print("could not connect to AP, retrying: ", e)
-            text_area.text = "Retry WiFi"
-            display.refresh()
-            time.sleep(1)
-            continue
-
-    text_area.text = "CONNECTED"
-    display.refresh()
-    response = requests.get(JSON_URL)
-    json_data = response.json()
-
-except Exception as e:
-    print("Error:", str(e))
-    error_msg = str(e)
-    if len(error_msg) > 15:
-        error_msg = error_msg[:15] + "..."
-    text_area.text = f"Error:\n{error_msg}"
-    display.refresh()
-
-display_items = []
-
-for item in json_data:
-    label = item.get('label', 'Unknown')
-    value = item.get('value', '')
-    color = item.get('color', 0xFFFFFF)
-
-    display_text = f"{label}:\n{value}"
-
-    display_items.append({
-        "text": display_text,
-        "color": color
-    })
-
-index = 0
+# Main loop with simplified approach
 while True:
-    item = display_items[index]
-    text_area.text = item["text"]
-    text_area.color = item["color"]
-    display.refresh()
-
-    time.sleep(3)
-
-    index = (index + 1) % len(display_items)
+    try:
+        # Clear previous sparkles
+        while len(sparkles_group) > 0:
+            sparkles_group.pop()
+        
+        # Add new sparkles
+        num_sparkles = random.randint(500, 1000)
+        for _ in range(num_sparkles):
+            # Create palette
+            palette = displayio.Palette(2)
+            palette[0] = 0x000000  # Transparent
+            palette[1] = random.choice(RAINBOW_COLORS)
+            
+            # Create the sparkle
+            sparkle = displayio.TileGrid(
+                sparkle_bitmap,
+                pixel_shader=palette,
+                x=random.randint(0, MATRIX_WIDTH-1),
+                y=random.randint(0, MATRIX_HEIGHT-1)
+            )
+            sparkles_group.append(sparkle)
+        
+        # Display the sparkles
+        display.refresh()
+        
+        # Short delay to control animation speed
+        time.sleep(0.05)
+        
+        # Run garbage collection to prevent memory issues
+        gc.collect()
+        
+    except Exception as e:
+        print("Error:", e)
+        time.sleep(0.5)
