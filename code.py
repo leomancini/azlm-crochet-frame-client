@@ -10,6 +10,7 @@ import gc
 
 MATRIX_WIDTH = 64
 MATRIX_HEIGHT = 64
+FRAME_RATE = 1  # Target frames per second
 
 matrix = Matrix(width=MATRIX_WIDTH, height=MATRIX_HEIGHT)
 display = matrix.display
@@ -42,41 +43,47 @@ RAINBOW_COLORS = [
     0xC0C0FF,  # Light Blue
 ]
 
-print("Starting rainbow sparkles...")
+# Main loop with consistent timing
+last_frame_time = time.monotonic()
+frame_interval = 1.0 / FRAME_RATE
 
-# Main loop with simplified approach
 while True:
     try:
-        # Clear previous sparkles
-        while len(sparkles_group) > 0:
-            sparkles_group.pop()
+        current_time = time.monotonic()
+        elapsed = current_time - last_frame_time
         
-        # Add new sparkles
-        num_sparkles = random.randint(500, 1000)
-        for _ in range(num_sparkles):
-            # Create palette
-            palette = displayio.Palette(2)
-            palette[0] = 0x000000  # Transparent
-            palette[1] = random.choice(RAINBOW_COLORS)
+        # Only update if it's time for the next frame
+        if elapsed >= frame_interval:
+            # Clear previous sparkles
+            while len(sparkles_group) > 0:
+                sparkles_group.pop()
             
-            # Create the sparkle
-            sparkle = displayio.TileGrid(
-                sparkle_bitmap,
-                pixel_shader=palette,
-                x=random.randint(0, MATRIX_WIDTH-1),
-                y=random.randint(0, MATRIX_HEIGHT-1)
-            )
-            sparkles_group.append(sparkle)
-        
-        # Display the sparkles
-        display.refresh()
-        
-        # Short delay to control animation speed
-        time.sleep(0.05)
-        
-        # Run garbage collection to prevent memory issues
-        gc.collect()
-        
+            # Add new sparkles (using a fixed number for more consistent performance)
+            num_sparkles = random.randint(1000, 2000)  # Random number between 100 and 1000
+            for _ in range(num_sparkles):
+                # Create palette
+                palette = displayio.Palette(2)
+                palette[0] = 0x000000  # Transparent
+                palette[1] = random.choice(RAINBOW_COLORS)
+                
+                # Create the sparkle
+                sparkle = displayio.TileGrid(
+                    sparkle_bitmap,
+                    pixel_shader=palette,
+                    x=random.randint(0, MATRIX_WIDTH),
+                    y=random.randint(0, MATRIX_HEIGHT)
+                )
+                sparkles_group.append(sparkle)
+            
+            # Display the sparkles
+            display.refresh()
+            
+            # Run garbage collection to prevent memory issues
+            gc.collect()
+            
+            # Update the last frame time
+            last_frame_time = current_time
+            
     except Exception as e:
         print("Error:", e)
         time.sleep(0.5)
