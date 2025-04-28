@@ -17,8 +17,9 @@ REQUEST_TIMEOUT = 0.1  # Maximum time to spend on network operations per frame
 
 ssid = getenv("CIRCUITPY_WIFI_SSID")
 password = getenv("CIRCUITPY_WIFI_PASSWORD")
+api_key = getenv("AZLM_CROCHET_FRAME_SERVER_API_KEY")
 
-DATA_URL = "http://azlm-crochet-frame-server.noshado.ws/api/settings"
+DATA_URL = f"http://azlm-crochet-frame-server.noshado.ws/api/settings?apiKey={api_key}"
 
 # Network setup
 esp32_cs = DigitalInOut(board.ESP_CS)
