@@ -73,7 +73,7 @@ DEFAULT_COLORS = [
 NUM_SPARKLES = initial_data.get('num_sparkles', 10)
 SPARKLE_SIZE = initial_data.get('sparkle_size', 1)
 RAINBOW_COLORS = initial_data.get('colors', DEFAULT_COLORS)
-SPEED = initial_data.get('speed', 10)  # Speed in milliseconds between updates
+SPEED = initial_data.get('speed', 10)
 
 def rgb_to_gbr(color):
     # Extract RGB components
